@@ -1,22 +1,21 @@
 # LeadSimple Follow-Up Robot — Setup
 
-Forward any email to **pmilighthouse-tasks@gmail.com** (from Outlook, Gmail,
+Forward any email to **pmilighthouse.tasks@gmail.com** (from Outlook, Gmail,
 or a phone) and it becomes an assigned "Email FollowUp" process in LeadSimple,
 linked to the sender's record. Add `+name` to pick the assignee:
 
 | Forward to | Assigned to |
 |---|---|
-| pmilighthouse-tasks+john@gmail.com | John Ray Belen |
-| pmilighthouse-tasks+pam@gmail.com | Pam Landman |
-| pmilighthouse-tasks+jasper@gmail.com | Jasper Jed Belen |
-| pmilighthouse-tasks+ari@gmail.com | Ari Kelhoffer |
-| pmilighthouse-tasks@gmail.com (no alias) | Paul Landman |
+| pmilighthouse.tasks+john@gmail.com | John Ray Belen |
+| pmilighthouse.tasks+pam@gmail.com | Pam Landman |
+| pmilighthouse.tasks+jasper@gmail.com | Jasper Jed Belen |
+| pmilighthouse.tasks+ari@gmail.com | Ari Kelhoffer |
+| pmilighthouse.tasks@gmail.com (no alias) | Paul Landman |
 
 ## One-time setup (Paul, ~10 minutes)
 
-1. **Create the account**: sign up for `pmilighthouse-tasks@gmail.com`
-   (or whatever is available — if the name differs, that's fine, aliases
-   still work; also update the Quick Step addresses below).
+1. **Create the account**: sign up for `pmilighthouse.tasks@gmail.com`
+   (done).
 2. **Create the script**: while signed in as that account, go to
    https://script.google.com → New project → name it "LeadSimple Follow-Up
    Robot" → delete the starter code → paste all of `Code.gs`.
@@ -35,7 +34,7 @@ linked to the sender's record. Add `+name` to pick the assignee:
 
 1. Home tab → Quick Steps gallery → **Create New**.
 2. Name: `LS Follow-Up → John` (etc.).
-3. Action: **Forward** → To: `pmilighthouse-tasks+john@gmail.com`.
+3. Action: **Forward** → To: `pmilighthouse.tasks+john@gmail.com`.
 4. Optionally add a second action: **Mark as read**.
 5. Repeat for the assignees you use most.
 
