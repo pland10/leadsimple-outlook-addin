@@ -80,6 +80,8 @@
 const PROXY_URL = "https://vpphjzvesgrihqavzyfu.supabase.co/functions/v1/leadsimple-outlook";
 const PHONE_SUBJECT_RE = /text message from\s*([+(]?[\d() .\-]{7,18}\d)/i;
 const FOLLOWUP_TYPE_RE = /email\s*follow/i;
+// Hidden from the assignee dropdown (kept active in LS as a catch-all account)
+const HIDDEN_USER_IDS = ["2dab89cd-ab11-4943-83a9-7070315a2e94"]; // John Ray Belen (1)
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let sender = null;        // { name, email }
@@ -183,7 +185,7 @@ async function getMeta() {
   const [users, processTypes] = await Promise.all([ls("/users?per_page=100"), ls("/process_types?per_page=100")]);
   metaCache = {
     ts: Date.now(),
-    users: users.map((u) => ({ id: u.id, name: u.name })),
+    users: users.filter((u) => HIDDEN_USER_IDS.indexOf(u.id) === -1).map((u) => ({ id: u.id, name: u.name })),
     processTypes: processTypes.map((p) => ({ id: p.id, name: p.name })),
   };
   return metaCache;
