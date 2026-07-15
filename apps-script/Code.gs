@@ -26,7 +26,7 @@ const PHONE_SUBJECT_RE = /text message from\s*([+(]?[\d() .\-]{7,18}\d)/i;
 const ASSIGNEES = {
   paul:   { id: "6582f65c-0bcf-443b-aff7-492e1cc963d2", name: "Paul Landman" },
   pam:    { id: "64d0e1b1-1e63-46d7-9db5-e2c262e229aa", name: "Pam Landman" },
-  john:   { id: "2dab89cd-ab11-4943-83a9-7070315a2e94", name: "John Ray Belen" },
+  john:   { id: "627b9b8c-0d37-4af2-b67e-9ac4626dc0ee", name: "John Ray 2 Belen" },
   jasper: { id: "4205296e-d449-40d3-8046-0b5f2db35b6e", name: "Jasper Jed Belen" },
   ari:    { id: "fd7e3406-803a-40bd-8c03-3e4faaa64040", name: "Ari Kelhoffer" },
 };
