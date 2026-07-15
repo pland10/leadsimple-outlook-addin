@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>LeadSimple Lookup</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 13px;
+    color: #202124;
+    background: #fff;
+  }
+  #app { padding: 12px; }
+  h1 { font-size: 14px; margin: 0 0 10px; color: #0b306e; }
+  .sender { border-bottom: 1px solid #e8eaed; padding-bottom: 8px; margin-bottom: 10px; }
+  .sender-name { font-weight: 600; font-size: 14px; }
+  .sender-email { color: #5f6368; font-size: 12px; margin-top: 2px; word-break: break-all; }
+  button {
+    font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+    border-radius: 4px; padding: 8px 10px; width: 100%; box-sizing: border-box;
+  }
+  .btn-primary { background: #1a73e8; color: #fff; border: none; margin-bottom: 6px; }
+  .btn-primary:hover:not(:disabled) { background: #1557b0; }
+  .btn-primary:disabled { background: #c5d8f8; cursor: not-allowed; }
+  .btn-secondary { background: #fff; color: #1a73e8; border: 1px solid #1a73e8; margin-bottom: 10px; }
+  .btn-secondary:hover:not(:disabled) { background: #e8f0fe; }
+  .btn-secondary:disabled { color: #9aa0a6; border-color: #dadce0; cursor: not-allowed; }
+  .card { margin-top: 10px; border: 1px solid #e8eaed; border-radius: 6px; padding: 10px; }
+  .card-name { font-weight: 600; font-size: 14px; }
+  .row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f1f3f4; gap: 8px; }
+  .row .label { color: #5f6368; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .row .value { text-align: right; word-break: break-word; }
+  .status-badge { display: inline-block; font-size: 10px; font-weight: 600; color: #fff; border-radius: 3px; padding: 2px 6px; margin-left: 6px; vertical-align: middle; }
+  a.open-link { display: block; margin-top: 8px; color: #1a73e8; text-decoration: none; font-weight: 500; font-size: 12px; }
+  .error { background: #fce8e6; border: 1px solid #f28b82; border-radius: 4px; padding: 8px 10px; margin-top: 10px; color: #c5221f; font-size: 12px; }
+  .muted { color: #9aa0a6; text-align: center; margin-top: 14px; font-size: 12px; line-height: 1.5; }
+  .fu-form { background: #f8f9fa; border: 1px solid #e8eaed; border-radius: 6px; padding: 10px; margin-top: 10px; }
+  .fu-label { display: block; font-size: 10px; font-weight: 600; color: #5f6368; text-transform: uppercase; letter-spacing: 0.04em; margin: 8px 0 3px; }
+  .fu-input, .fu-select, .fu-textarea {
+    width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid #dadce0;
+    border-radius: 4px; font-size: 12px; font-family: inherit; background: #fff; outline: none;
+  }
+  .fu-input:focus, .fu-select:focus, .fu-textarea:focus { border-color: #1a73e8; }
+  .fu-textarea { resize: vertical; line-height: 1.4; }
+  .linked { font-size: 11px; color: #188038; background: #e6f4ea; border-radius: 4px; padding: 5px 8px; margin-bottom: 4px; line-height: 1.4; }
+  .linked.hint { color: #5f6368; background: #f1f3f4; }
+  .success { background: #e6f4ea; border: 1px solid #81c995; border-radius: 6px; padding: 10px 12px; margin-top: 10px; }
+  .success-title { color: #188038; font-weight: 600; }
+  .success-name { color: #3c4043; font-size: 12px; margin-top: 3px; word-break: break-word; }
+  .settings { margin-top: 16px; border-top: 1px solid #e8eaed; padding-top: 10px; }
+  .settings summary { cursor: pointer; color: #5f6368; font-size: 12px; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #e8eaed; border-top-color: #1a73e8; border-radius: 50%; animation: spin 0.75s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>LeadSimple Lookup</h1>
+  <div class="sender">
+    <div class="sender-name" id="sender-name">—</div>
+    <div class="sender-email" id="sender-email">Open an email to begin</div>
+  </div>
+  <button class="btn-primary" id="lookup-btn" disabled>Look Up in LeadSimple</button>
+  <button class="btn-secondary" id="followup-btn" disabled>+ Create LS Follow-Up</button>
+  <div id="followup-area"></div>
+  <div id="result-area"><div class="muted">Results will appear here.</div></div>
+  <details class="settings">
+    <summary>Settings</summary>
+    <label class="fu-label" for="token-input">LeadSimple API token</label>
+    <input class="fu-input" id="token-input" type="password" />
+    <button class="btn-primary" id="save-token" style="margin-top:8px">Save</button>
+    <div id="settings-status" style="font-size:11px;color:#188038;margin-top:4px"></div>
+  </details>
+</div>
+
+<script>
+// ─── Config ───────────────────────────────────────────────────────────────────
+const PROXY_URL = "https://vpphjzvesgrihqavzyfu.supabase.co/functions/v1/leadsimple-outlook";
+const PHONE_SUBJECT_RE = /text message from\s*([+(]?[\d() .\-]{7,18}\d)/i;
+const FOLLOWUP_TYPE_RE = /email\s*follow/i;
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let sender = null;        // { name, email }
+let subject = "";
+let detectedPhone = null;
+let lastResult = null;    // { found, matches, topDealId }
+let metaCache = null;     // { ts, users, processTypes }
+const META_TTL_MS = 60 * 60 * 1000;
+
+// ─── LeadSimple API via proxy ─────────────────────────────────────────────────
+function getToken() {
+  const t = localStorage.getItem("lsToken");
+  if (!t) throw new Error("No LeadSimple API token set — open Settings below and paste yours (ask Paul).");
+  return t;
+}
+
+async function ls(path, method = "GET", body = null) {
+  const res = await fetch(PROXY_URL, {
+    method: "POST",
+    headers: { Authorization: "Bearer " + getToken(), "Content-Type": "application/json" },
+    body: JSON.stringify({ path, method, body }),
+  });
+  if (res.status === 401) throw new Error("LeadSimple token is invalid or expired. Update it in Settings.");
+  if (!res.ok) {
+    let detail = "";
+    try { detail = (await res.json()).error || ""; } catch (_) {}
+    throw new Error(`LeadSimple API error (${res.status})${detail ? ": " + detail : ""}`);
+  }
+  const json = await res.json();
+  return json.data !== undefined ? json.data : json;
+}
+
+// ─── Lookup ───────────────────────────────────────────────────────────────────
+async function searchDeals(query) {
+  return ls(`/deals?per_page=10&search=${encodeURIComponent(query)}`);
+}
+
+function formatDeal(deal) {
+  const contactNames = (deal.contacts || [])
+    .map((c) => c.name || [c.first_name, c.last_name].filter(Boolean).join(" "))
+    .filter(Boolean);
+  const displayName = contactNames.length > 0 ? contactNames.join(", ") : deal.name;
+  return {
+    id: deal.id,
+    name: displayName,
+    pipeline: deal.pipeline ? deal.pipeline.name : null,
+    stage: deal.stage ? deal.stage.name : null,
+    status: deal.stage && deal.stage.status ? deal.stage.status.toUpperCase() : null,
+    owner: deal.assignee ? deal.assignee.name : null,
+    profileUrl: deal.link || null,
+  };
+}
+
+async function triggerLookup() {
+  const btn = document.getElementById("lookup-btn");
+  const area = document.getElementById("result-area");
+  const query = detectedPhone || (sender && sender.email);
+  if (!query) return;
+
+  btn.disabled = true;
+  area.innerHTML = `<div class="muted"><span class="spinner"></span>Searching LeadSimple…</div>`;
+  try {
+    let deals = await searchDeals(query);
+    if (deals.length === 0 && !detectedPhone && sender.name && sender.name !== sender.email) {
+      deals = await searchDeals(sender.name);
+    }
+    if (deals.length === 0) {
+      lastResult = { found: false };
+      area.innerHTML = `<div class="muted">No contact found in LeadSimple.</div>`;
+    } else {
+      const matches = deals.map(formatDeal);
+      lastResult = { found: true, matches, topDealId: matches[0].id };
+      renderMatches(matches);
+    }
+  } catch (err) {
+    showError(err.message);
+  }
+  btn.disabled = false;
+}
+
+function renderMatches(matches) {
+  const colors = { WON: "#188038", LEAD: "#1a73e8", PROSPECT: "#e37400", INVALID: "#9aa0a6", PAST: "#9aa0a6" };
+  const row = (label, value) => value
+    ? `<div class="row"><span class="label">${label}</span><span class="value">${esc(value)}</span></div>` : "";
+  document.getElementById("result-area").innerHTML = matches.map((m) => `
+    <div class="card">
+      <div class="card-name">${esc(m.name || "—")}
+        ${m.status ? `<span class="status-badge" style="background:${colors[m.status] || "#5f6368"}">${m.status}</span>` : ""}
+      </div>
+      ${row("Pipeline", m.pipeline)}
+      ${row("Stage", m.stage)}
+      ${row("Owner", m.owner)}
+      ${m.profileUrl ? `<a class="open-link" href="${m.profileUrl}" target="_blank">Open in LeadSimple ↗</a>` : ""}
+    </div>
+  `).join("");
+}
+
+// ─── Follow-up ────────────────────────────────────────────────────────────────
+async function getMeta() {
+  if (metaCache && Date.now() - metaCache.ts < META_TTL_MS) return metaCache;
+  const [users, processTypes] = await Promise.all([ls("/users?per_page=100"), ls("/process_types?per_page=100")]);
+  metaCache = {
+    ts: Date.now(),
+    users: users.map((u) => ({ id: u.id, name: u.name })),
+    processTypes: processTypes.map((p) => ({ id: p.id, name: p.name })),
+  };
+  return metaCache;
+}
+
+async function toggleFollowupForm() {
+  const area = document.getElementById("followup-area");
+  if (area.dataset.open === "1") { area.innerHTML = ""; area.dataset.open = ""; return; }
+  area.dataset.open = "1";
+  area.innerHTML = `<div class="muted"><span class="spinner"></span>Loading…</div>`;
+  try {
+    const meta = await getMeta();
+    renderFollowupForm(area, meta);
+  } catch (err) {
+    area.innerHTML = `<div class="error">${esc(err.message)}</div>`;
+  }
+}
+
+function renderFollowupForm(area, meta) {
+  const topMatch = lastResult && lastResult.found ? lastResult.matches[0] : null;
+  const linkedDeal = topMatch
+    ? { id: lastResult.topDealId, name: topMatch.name, link: topMatch.profileUrl }
+    : null;
+
+  const title = subject || detectedPhone || (sender && (sender.name || sender.email)) || "";
+  const noteLines = [
+    detectedPhone ? `Phone: ${detectedPhone}` : null,
+    !detectedPhone && sender && sender.email ? `From: ${sender.name} <${sender.email}>` : null,
+    subject ? `Subject: ${subject}` : null,
+    "Source: Outlook",
+  ].filter(Boolean);
+
+  const savedUser = localStorage.getItem("followupUserId") || "";
+  const userOptions = meta.users
+    .map((u) => `<option value="${u.id}" ${u.id === savedUser ? "selected" : ""}>${esc(u.name)}</option>`)
+    .join("");
+
+  const linkedLine = linkedDeal
+    ? `<div class="linked">🔗 Will link to <b>${esc(linkedDeal.name)}</b></div>`
+    : `<div class="linked hint">Tip: click "Look Up in LeadSimple" first to link this to their record.</div>`;
+
+  area.innerHTML = `
+    <div class="fu-form">
+      ${linkedLine}
+      <label class="fu-label" for="fu-title">Title</label>
+      <input class="fu-input" id="fu-title" type="text" value="${esc(title)}" />
+      <label class="fu-label" for="fu-assignee">Assign to</label>
+      <select class="fu-select" id="fu-assignee"><option value="">— Unassigned —</option>${userOptions}</select>
+      <label class="fu-label" for="fu-notes">Notes</label>
+      <textarea class="fu-textarea" id="fu-notes" rows="4">${esc(noteLines.join("\n"))}</textarea>
+      <button class="btn-primary" id="fu-create" style="margin-top:10px">Create in LeadSimple</button>
+      <button class="btn-secondary" id="fu-cancel" style="margin-top:6px;margin-bottom:0">Cancel</button>
+    </div>
+  `;
+  document.getElementById("fu-cancel").addEventListener("click", () => { area.innerHTML = ""; area.dataset.open = ""; });
+  document.getElementById("fu-create").addEventListener("click", () => submitFollowup(area, linkedDeal));
+}
+
+async function submitFollowup(area, linkedDeal) {
+  const name = document.getElementById("fu-title").value.trim();
+  const userId = document.getElementById("fu-assignee").value;
+  const comments = document.getElementById("fu-notes").value.trim();
+  const btn = document.getElementById("fu-create");
+  if (!name) { document.getElementById("fu-title").focus(); return; }
+
+  btn.disabled = true;
+  btn.textContent = "Creating…";
+  try {
+    const meta = await getMeta();
+    let processType = meta.processTypes.find((p) => FOLLOWUP_TYPE_RE.test(p.name));
+    if (!processType) {
+      metaCache = null;
+      const fresh = await getMeta();
+      processType = fresh.processTypes.find((p) => FOLLOWUP_TYPE_RE.test(p.name));
+    }
+    if (!processType) throw new Error('No "Email FollowUp" process type found in LeadSimple.');
+
+    const stages = await ls(`/process_types/${processType.id}/stages?per_page=50`);
+    const stage = stages.find((s) => s.status === "working") || stages[0];
+    if (!stage) throw new Error("This process type has no stages in LeadSimple.");
+
+    let fullComments = comments;
+    if (linkedDeal && linkedDeal.name) {
+      fullComments += `\nRecord: ${linkedDeal.name}${linkedDeal.link ? " — " + linkedDeal.link : ""}`;
+    }
+    const process = { process_type_id: processType.id, stage_id: stage.id, name, comments: fullComments };
+    if (userId) process.user_id = userId;
+    const created = await ls("/processes", "POST", { process });
+
+    let linkedTo = null;
+    if (linkedDeal && linkedDeal.id) {
+      try {
+        const assignee = userId ? metaCache.users.find((u) => u.id === userId) : null;
+        await ls("/notes", "POST", {
+          parent_id: linkedDeal.id,
+          parent_type: "Deal",
+          description:
+            `Email follow-up created: ${name}` +
+            (assignee ? `\nAssigned to: ${assignee.name}` : "") +
+            (created.link ? `\nProcess: ${created.link}` : ""),
+        });
+        linkedTo = linkedDeal.name;
+      } catch (_) { /* note is a bonus */ }
+    }
+
+    if (userId) localStorage.setItem("followupUserId", userId);
+    area.dataset.open = "";
+    area.innerHTML = `
+      <div class="success">
+        <div class="success-title">✓ Follow-up created</div>
+        <div class="success-name">${esc(created.name)}</div>
+        ${linkedTo ? `<div class="success-name">🔗 Linked to ${esc(linkedTo)}</div>` : ""}
+        ${created.link ? `<a class="open-link" href="${created.link}" target="_blank">Open in LeadSimple ↗</a>` : ""}
+      </div>`;
+    setTimeout(() => { if (area.dataset.open !== "1") area.innerHTML = ""; }, 8000);
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = "Create in LeadSimple";
+    const existing = area.querySelector(".error");
+    if (existing) existing.remove();
+    const el = document.createElement("div");
+    el.className = "error";
+    el.textContent = err.message;
+    area.querySelector(".fu-form").appendChild(el);
+  }
+}
+
+// ─── Read the open email ──────────────────────────────────────────────────────
+function refreshFromItem() {
+  const mailbox = window.Office && Office.context && Office.context.mailbox;
+  if (!mailbox || !mailbox.item) return;
+  const item = mailbox.item;
+  subject = item.subject || "";
+  const from = item.from;
+  sender = from ? { name: from.displayName || from.emailAddress, email: from.emailAddress } : null;
+  const m = subject.match(PHONE_SUBJECT_RE);
+  detectedPhone = m ? m[1].trim() : null;
+  lastResult = null;
+
+  document.getElementById("sender-name").textContent = detectedPhone ? "💬 Text message" : (sender ? sender.name : "—");
+  document.getElementById("sender-email").textContent = detectedPhone ? detectedPhone : (sender ? sender.email : "");
+  document.getElementById("lookup-btn").disabled = !(detectedPhone || sender);
+  document.getElementById("followup-btn").disabled = !(detectedPhone || sender);
+  document.getElementById("result-area").innerHTML = `<div class="muted">Click "Look Up" to search LeadSimple.</div>`;
+  const fuArea = document.getElementById("followup-area");
+  fuArea.innerHTML = ""; fuArea.dataset.open = "";
+}
+
+// ─── Helpers / boot ───────────────────────────────────────────────────────────
+function esc(str) {
+  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function showError(msg) {
+  document.getElementById("result-area").innerHTML = `<div class="error">${esc(msg)}</div>`;
+}
+
+function boot() {
+  document.getElementById("lookup-btn").addEventListener("click", triggerLookup);
+  document.getElementById("followup-btn").addEventListener("click", toggleFollowupForm);
+  const tokenInput = document.getElementById("token-input");
+  tokenInput.value = localStorage.getItem("lsToken") || "";
+  document.getElementById("save-token").addEventListener("click", () => {
+    localStorage.setItem("lsToken", tokenInput.value.trim());
+    document.getElementById("settings-status").textContent = "Saved!";
+    setTimeout(() => { document.getElementById("settings-status").textContent = ""; }, 3000);
+  });
+}
+
+if (window.Office && Office.onReady) {
+  Office.onReady(() => {
+    boot();
+    refreshFromItem();
+    // Pinned task pane: refresh when the user selects a different email
+    if (Office.context.mailbox && Office.context.mailbox.addHandlerAsync) {
+      Office.context.mailbox.addHandlerAsync(Office.EventType.ItemChanged, refreshFromItem);
+    }
+  });
+} else {
+  // Outside Outlook (testing in a browser) — boot without Office context
+  document.addEventListener("DOMContentLoaded", boot);
+}
+</script>
+</body>
+</html>
