@@ -32,18 +32,30 @@ const ASSIGNEES = {
 };
 const DEFAULT_ASSIGNEE = "paul";
 
+// Only mail FROM these senders becomes a follow-up; everything else (Google
+// notifications, spam, direct outside mail) is labeled LS-Ignored and skipped.
+const ALLOWED_FORWARDERS = /@pmilighthouse\.com|pland10@gmail\.com/i;
+
 const DONE_LABEL = "LS-Created";
 const FAIL_LABEL = "LS-Failed";
+const SKIP_LABEL = "LS-Ignored";
 
 // ─── Entry point (trigger) ────────────────────────────────────────────────────
 function processInbox() {
   const done = getOrCreateLabel_(DONE_LABEL);
   const fail = getOrCreateLabel_(FAIL_LABEL);
+  const skip = getOrCreateLabel_(SKIP_LABEL);
   const threads = GmailApp.search("in:inbox is:unread", 0, 20);
 
   for (const thread of threads) {
     for (const msg of thread.getMessages()) {
       if (!msg.isUnread()) continue;
+      if (!ALLOWED_FORWARDERS.test(msg.getFrom())) {
+        console.info(`Ignored (not a team forward): "${msg.getSubject()}" from ${msg.getFrom()}`);
+        thread.addLabel(skip);
+        msg.markRead();
+        continue;
+      }
       try {
         handleMessage_(msg);
         thread.addLabel(done);
