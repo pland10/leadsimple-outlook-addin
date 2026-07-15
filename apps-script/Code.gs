@@ -57,11 +57,20 @@ function processInbox() {
         continue;
       }
       try {
-        handleMessage_(msg);
+        const result = handleMessage_(msg);
         thread.addLabel(done);
+        msg.reply(
+          `✓ Follow-up created: "${result.name}"\n` +
+          `Assigned to: ${result.assignee}\n` +
+          (result.dealName ? `Linked to: ${result.dealName}\n` : "") +
+          (result.link ? `\n${result.link}` : "")
+        );
       } catch (e) {
         console.error(`Failed on "${msg.getSubject()}": ${e.message}`);
         thread.addLabel(fail);
+        try {
+          msg.reply(`⚠ Could NOT create a LeadSimple follow-up for "${msg.getSubject()}":\n${e.message}\n\nPlease create it manually or resend.`);
+        } catch (_) {}
       }
       msg.markRead();
     }
@@ -135,6 +144,7 @@ function handleMessage_(msg) {
   }
 
   console.info(`Created "${fwd.subject}" → ${assignee.name}${dealName ? " (linked to " + dealName + ")" : ""}`);
+  return { name: fwd.subject, assignee: assignee.name, dealName, link: created.link || null };
 }
 
 // ─── Assignee from plus-alias ─────────────────────────────────────────────────
