@@ -8,28 +8,23 @@ Gmail extension v3.6, including linking the follow-up to the person's record.
 
 ## Architecture
 
-- **Task pane** (`taskpane.html`): hosted in the Supabase `outlook-addin`
-  storage bucket, but *served* through the edge function (storage refuses to
-  serve `text/html`).
+- **Task pane** (`taskpane.html`): hosted on GitHub Pages at
+  https://pland10.github.io/leadsimple-outlook-addin/taskpane.html
+  (repo: pland10/leadsimple-outlook-addin). Supabase storage/functions can't
+  host it — both rewrite text/html to text/plain as anti-phishing policy.
 - **Edge function** (`supabase-function/ls-proxy.ts`, deployed as
-  `leadsimple-outlook`): GET serves the task pane; POST proxies LeadSimple API
-  calls (the LS API sends no CORS headers, so the pane can't call it directly).
-  Each user's LS token is entered in the pane's Settings and stored in
-  localStorage; the proxy just passes it through.
+  `leadsimple-outlook`, Verify JWT off): proxies LeadSimple API calls (the LS
+  API sends no CORS headers, so the pane can't call it directly). Each user's
+  LS token is entered in the pane's Settings and stored in localStorage; the
+  proxy just passes it through.
 - **manifest.xml**: the file users sideload into Outlook. Points at the
-  function URL and the storage-hosted icons.
+  GitHub Pages URLs.
 
-## One-time setup (Paul)
+## Hosting (already set up, July 2026)
 
-1. **Deploy the edge function**: Supabase dashboard → Edge Functions →
-   Deploy new function → name it exactly `leadsimple-outlook` → paste the
-   contents of `supabase-function/ls-proxy.ts` → deploy.
-2. **Turn OFF "Verify JWT"** for this function (function → Details/Settings →
-   uncheck "Enforce JWT verification"). The page must load without auth; the
-   proxy is useless without a valid LeadSimple token anyway.
-3. **Smoke test**: open
-   `https://vpphjzvesgrihqavzyfu.supabase.co/functions/v1/leadsimple-outlook`
-   in a browser — you should see the LeadSimple Lookup page.
+- Edge function `leadsimple-outlook` deployed in Supabase, Verify JWT off.
+- GitHub Pages enabled on pland10/leadsimple-outlook-addin (main, root).
+- Smoke test: https://pland10.github.io/leadsimple-outlook-addin/taskpane.html
 
 ## Per-user install
 
@@ -48,10 +43,9 @@ Gmail extension v3.6, including linking the follow-up to the person's record.
 
 ## Updating
 
-- **Task pane changes**: edit `taskpane.html`, re-upload to the
-  `outlook-addin` storage bucket (Content-Type `text/html`, upsert). No
-  function redeploy, no user action needed — next pane open picks it up.
-- **Proxy changes**: re-paste `ls-proxy.ts` in the dashboard.
+- **Task pane changes**: edit `taskpane.html`, commit, `git push` — GitHub
+  Pages redeploys in ~1 minute. No user action needed.
+- **Proxy changes**: re-paste `ls-proxy.ts` in the Supabase dashboard.
 - **Manifest changes** (rare): users must remove and re-add the add-in.
 
 ## Files
