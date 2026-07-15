@@ -106,6 +106,7 @@ function handleMessage_(msg) {
     `Forwarded by: ${msg.getFrom()}`,
     "Source: Outlook forward",
     dealName ? `Record: ${dealName}${deal.link ? " — " + deal.link : ""}` : null,
+    fwd.content ? `\n--- Message ---\n${fwd.content}` : null,
   ].filter(Boolean);
 
   const created = ls_("/processes", "POST", {
@@ -167,7 +168,18 @@ function parseForwarded_(msg) {
       senderName = raw.replace(bare ? bare[1] : "", "").replace(/[<>\[\]"']/g, "").trim() || senderEmail;
     }
   }
-  return { subject, senderName, senderEmail };
+
+  // Original message content: everything after the forward's header block
+  // (the last of the From:/Sent:/Date:/To:/Cc:/Subject: lines near the top)
+  let content = body;
+  const headerBlock = body.match(/^\s*(?:From|Sent|Date|To|Cc|Subject):.*$(?:\r?\n^(?:From|Sent|Date|To|Cc|Subject|Reply-To):.*$)*/im);
+  if (headerBlock) {
+    content = body.slice(headerBlock.index + headerBlock[0].length);
+  }
+  content = content.replace(/\r/g, "").replace(/\n{3,}/g, "\n\n").trim();
+  if (content.length > 1500) content = content.slice(0, 1500) + "\n[…truncated]";
+
+  return { subject, senderName, senderEmail, content };
 }
 
 // ─── LeadSimple API ───────────────────────────────────────────────────────────
