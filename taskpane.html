@@ -86,6 +86,7 @@ const HIDDEN_USER_IDS = ["2dab89cd-ab11-4943-83a9-7070315a2e94"]; // John Ray Be
 // ─── State ────────────────────────────────────────────────────────────────────
 let sender = null;        // { name, email }
 let subject = "";
+let bodyText = "";
 let detectedPhone = null;
 let lastResult = null;    // { found, matches, topDealId }
 let metaCache = null;     // { ts, users, processTypes }
@@ -216,6 +217,7 @@ function renderFollowupForm(area, meta) {
     !detectedPhone && sender && sender.email ? `From: ${sender.name} <${sender.email}>` : null,
     subject ? `Subject: ${subject}` : null,
     "Source: Outlook",
+    bodyText ? `\n--- Message ---\n${bodyText}` : null,
   ].filter(Boolean);
 
   const savedUser = localStorage.getItem("followupUserId") || "";
@@ -324,6 +326,20 @@ function refreshFromItem() {
   const m = subject.match(PHONE_SUBJECT_RE);
   detectedPhone = m ? m[1].trim() : null;
   lastResult = null;
+
+  // Body loads asynchronously; strip quoted reply chains and cap the length
+  bodyText = "";
+  if (item.body && item.body.getAsync) {
+    item.body.getAsync("text", (res) => {
+      if (res.status === Office.AsyncResultStatus.Succeeded && res.value) {
+        let t = res.value.replace(/\r/g, "").replace(/\n{3,}/g, "\n\n").trim();
+        const quoteStart = t.search(/^\s*(?:From|Sent):\s.*$/m);
+        if (quoteStart > 100) t = t.slice(0, quoteStart).trim();
+        if (t.length > 1500) t = t.slice(0, 1500) + "\n[…truncated]";
+        bodyText = t;
+      }
+    });
+  }
 
   document.getElementById("sender-name").textContent = detectedPhone ? "💬 Text message" : (sender ? sender.name : "—");
   document.getElementById("sender-email").textContent = detectedPhone ? detectedPhone : (sender ? sender.email : "");
