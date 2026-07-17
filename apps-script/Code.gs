@@ -75,6 +75,7 @@ function processInbox() {
           `✓ Follow-up created: "${result.name}"\n` +
           `Assigned to: ${result.assignee}\n` +
           (result.dealName ? `Linked to: ${result.dealName}\n` : "") +
+          (result.fileCount ? `Attachments saved: ${result.fileCount}\n` : "") +
           (result.link ? `\n${result.link}` : "")
         );
       } catch (e) {
@@ -94,6 +95,7 @@ function processInbox() {
 function handleMessage_(msg) {
   const assignee = resolveAssignee_(msg);
   const fwd = parseForwarded_(msg);
+  const files = saveAttachments_(msg);
   const phone = (fwd.subject.match(PHONE_SUBJECT_RE) || [])[1] || null;
 
   // Look up the original sender's deal in LeadSimple
@@ -127,6 +129,7 @@ function handleMessage_(msg) {
     `Forwarded by: ${msg.getFrom()}`,
     "Source: Outlook forward",
     dealName ? `Record: ${dealName}${deal.link ? " — " + deal.link : ""}` : null,
+    files.length ? `\nAttachments:\n${files.map((f) => `- ${f.name}: ${f.url}`).join("\n")}` : null,
     fwd.content ? `\n--- Message ---\n${fwd.content}` : null,
   ].filter(Boolean);
 
@@ -156,7 +159,33 @@ function handleMessage_(msg) {
   }
 
   console.info(`Created "${fwd.subject}" → ${assignee.name}${dealName ? " (linked to " + dealName + ")" : ""}`);
-  return { name: fwd.subject, assignee: assignee.name, dealName, link: created.link || null };
+  return { name: fwd.subject, assignee: assignee.name, dealName, link: created.link || null, fileCount: files.length };
+}
+
+// ─── Save attachments to Drive, return shareable links ────────────────────────
+// The LeadSimple API has no attachment upload, so files live in this account's
+// Drive ("LS Follow-Up Attachments" folder) with view-by-link sharing, and the
+// process notes carry the links.
+function saveAttachments_(msg) {
+  const atts = msg.getAttachments({ includeInlineImages: false, includeAttachments: true });
+  if (atts.length === 0) return [];
+  const folder = getOrCreateFolder_("LS Follow-Up Attachments");
+  const out = [];
+  for (const a of atts) {
+    try {
+      const file = folder.createFile(a.copyBlob());
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      out.push({ name: a.getName(), url: file.getUrl() });
+    } catch (e) {
+      console.warn(`Could not save attachment "${a.getName()}": ${e.message}`);
+    }
+  }
+  return out;
+}
+
+function getOrCreateFolder_(name) {
+  const it = DriveApp.getFoldersByName(name);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(name);
 }
 
 // ─── Assignee from plus-alias ─────────────────────────────────────────────────
