@@ -32,9 +32,21 @@ const ASSIGNEES = {
 };
 const DEFAULT_ASSIGNEE = "paul";
 
+// Forwarder address → assignee key. Used when the forward has no +alias (or
+// uses +me): the task goes to whoever forwarded it.
+const SENDER_TO_ASSIGNEE = {
+  "paul@pmilighthouse.com": "paul",
+  "pland10@gmail.com": "paul",
+  "pam@pmilighthouse.com": "pam",
+  "johnray@pmilighthouse.com": "john",
+  "johnray2@pmilighthouse.com": "john",
+  "jasper@pmilighthouse.com": "jasper",
+  "akelb01@outlook.com": "ari",
+};
+
 // Only mail FROM these senders becomes a follow-up; everything else (Google
 // notifications, spam, direct outside mail) is labeled LS-Ignored and skipped.
-const ALLOWED_FORWARDERS = /@pmilighthouse\.com|pland10@gmail\.com/i;
+const ALLOWED_FORWARDERS = /@pmilighthouse\.com|pland10@gmail\.com|akelb01@outlook\.com/i;
 
 const DONE_LABEL = "LS-Created";
 const FAIL_LABEL = "LS-Failed";
@@ -151,7 +163,13 @@ function handleMessage_(msg) {
 function resolveAssignee_(msg) {
   const recipients = (msg.getTo() + "," + (msg.getCc() || "")).toLowerCase();
   const m = recipients.match(/\+([a-z0-9._-]+)@gmail\.com/);
-  const key = m ? m[1] : DEFAULT_ASSIGNEE;
+  let key = m ? m[1] : null;
+
+  // No alias, or explicit +me: assign to whoever forwarded it
+  if (!key || key === "me" || !ASSIGNEES[key]) {
+    const fromEmail = ((msg.getFrom().match(/<([^>]+)>/) || [])[1] || msg.getFrom()).toLowerCase().trim();
+    key = SENDER_TO_ASSIGNEE[fromEmail] || DEFAULT_ASSIGNEE;
+  }
   return ASSIGNEES[key] || ASSIGNEES[DEFAULT_ASSIGNEE];
 }
 

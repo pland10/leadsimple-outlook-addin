@@ -6,11 +6,12 @@ linked to the sender's record. Add `+name` to pick the assignee:
 
 | Forward to | Assigned to |
 |---|---|
-| pmilighthouse.tasks+john@gmail.com | John Ray Belen |
+| pmilighthouse.tasks+john@gmail.com | John Ray 2 Belen |
 | pmilighthouse.tasks+pam@gmail.com | Pam Landman |
 | pmilighthouse.tasks+jasper@gmail.com | Jasper Jed Belen |
 | pmilighthouse.tasks+ari@gmail.com | Ari Kelhoffer |
-| pmilighthouse.tasks@gmail.com (no alias) | Paul Landman |
+| pmilighthouse.tasks+me@gmail.com | whoever forwarded it |
+| pmilighthouse.tasks@gmail.com (no alias) | whoever forwarded it |
 
 ## One-time setup (Paul, ~10 minutes)
 
